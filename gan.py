@@ -11,6 +11,20 @@ from torchvision.utils import make_grid
 from tensorboardX import SummaryWriter
 
 
+class Options:
+    def __init__(self):
+        self.cuda = False
+        self.batch_size = 256
+        self.nz = 2
+        self.num_iter = 50
+        self.num_disc_iters = 10
+        self.wgangp_lambda = 0.1
+        self.visualize_nth = 10
+        self.n_classes = 4
+        self.conditional = False
+        self.shuffle_labels = False
+        
+
 TENSORBOARD = True
 
 DATASET = 'MNIST' # 'MNIST', 'gaussians'
