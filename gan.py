@@ -153,7 +153,7 @@ class GAN_base():
         self.save('final')
 
 
-    def save(tag):
+    def save(self, tag):
         torch.save(self.netG.state_dict(), self.opt.path + 'gen_{}.pth'.format(tag))
         torch.save(self.netD.state_dict(), self.opt.path + 'disc_{}.pth'.format(tag))
 
