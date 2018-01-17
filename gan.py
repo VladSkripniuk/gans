@@ -35,7 +35,7 @@ class GAN_base():
         self.optimizerD, self.optimizerG = optimizerD, optimizerG
 
         self.opt = opt
-        if self.opt.is_cuda:
+        if self.opt.cuda:
             self.netD.cuda()
             self.netG.cuda()
 
@@ -112,7 +112,7 @@ class GAN_base():
         netG.train()
 
         # move everything on a GPU
-        if self.opt.is_cuda:
+        if self.opt.cuda:
             netD.cuda()
             netG.cuda()
 
@@ -147,7 +147,7 @@ class GAN_base():
 
 
     def join_xy(self, batch):
-        th = torch.cuda if self.opt.is_cuda else torch
+        th = torch.cuda if self.opt.cuda else torch
 
         x, y = batch
 
@@ -169,17 +169,17 @@ class GAN_base():
 
 
     def gen_labels(self, batch_size):
-        th = torch.cuda if self.opt.is_cuda else torch
-        if self.opt.is_cuda:
+        th = torch.cuda if self.opt.cuda else torch
+        if self.opt.cuda:
             return torch.autograd.Variable(torch.LongTensor(batch_size).random_(0, self.opt.n_classes).cuda())
         else:
             return torch.autograd.Variable(torch.LongTensor(batch_size).random_(0, self.opt.n_classes))
 
 
     def gen_latent_noise(self, batch_size, nz):
-        th = torch.cuda if self.opt.is_cuda else torch
+        th = torch.cuda if self.opt.cuda else torch
         shape = [batch_size] + list(nz)
-        if self.opt.is_cuda:
+        if self.opt.cuda:
             return torch.zeros(shape).normal_(0, 1).cuda()
         else:
             return torch.zeros(shape).normal_(0, 1)
@@ -194,7 +194,7 @@ class GAN_base():
                 y = self.gen_labels(batch_size)
             else:
                 y = torch.autograd.Variable(torch.LongTensor(batch_size).zero_() + label)
-                if self.opt.is_cuda:
+                if self.opt.cuda:
                     y = y.cuda()
             noise = self.join_xy((noise, y))
             return self.netG(noise), y
@@ -239,7 +239,7 @@ class GAN(GAN_base):
 
 
     def compute_disc_score(self, data_a, data_b):
-        th = torch.cuda if self.opt.is_cuda else torch
+        th = torch.cuda if self.opt.cuda else torch
 
         if self.opt.conditional:
             data_a = self.join_xy(data_a)
@@ -259,7 +259,7 @@ class GAN(GAN_base):
 
 
     def compute_gen_score(self, data):
-        th = torch.cuda if self.opt.is_cuda else torch
+        th = torch.cuda if self.opt.cuda else torch
 
         if self.opt.conditional:
             data = self.join_xy(data)
