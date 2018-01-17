@@ -1,5 +1,6 @@
 from time import time as time
 import numpy as np
+from tqdm import tqdm
 
 import torch
 from torch.autograd import Variable
