@@ -17,8 +17,8 @@ import lsgan
 
 opt = gan.Options()
 
-opt.cuda = True
-opt.path = 'WGAN_c2stWGANlong/'
+opt.cuda = False
+opt.path = 'wgan_test/'
 opt.num_iter = 20000
 opt.batch_size = 50
 opt.visualize_nth = 2000
