@@ -130,6 +130,9 @@ class GAN_base():
 
         for i_iter in tqdm(range(opt.num_iter)):
 
+            if (i_iter + 1) in self.opt.checkpoints:
+                self.save(i_iter + 1)
+
             errD, errG = self.train_one_step(iterator_data, iterator_fake,
                                              num_disc_iters=opt.num_disc_iters, i_iter=i_iter)
 
@@ -145,6 +148,13 @@ class GAN_base():
                 
         if TENSORBOARD:
             writer.close()
+
+        self.save('final')
+
+
+    def save(tag):
+        torch.save(self.netG.state_dict(), self.opt.path + 'gen_{}.pth'.format(tag))
+        torch.save(self.netD.state_dict(), self.opt.path + 'disc_{}.pth'.format(tag))
 
 
     def join_xy(self, batch):
