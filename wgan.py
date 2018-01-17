@@ -45,7 +45,7 @@ class WGANGP(GAN_base):
         return gradient_penalties
 
     def compute_disc_score(self, data_a, data_b):
-        if self.conditional:
+        if self.opt.conditional:
             data_a = self.join_xy(data_a)
             data_b = self.join_xy(data_b)
 
@@ -60,6 +60,6 @@ class WGANGP(GAN_base):
         return errD
 
     def compute_gen_score(self, data):
-        if self.conditional:
+        if self.opt.conditional:
             data = self.join_xy(data)
         return self.netD(data).mean()
