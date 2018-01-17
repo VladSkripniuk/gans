@@ -19,15 +19,15 @@ opt = gan.Options()
 
 opt.cuda = False
 opt.path = 'wgan_test/'
-opt.num_iter = 20000
+opt.num_iter = 100000
 opt.batch_size = 50
 opt.visualize_nth = 2000
-opt.c2st_nth = 2000
 opt.conditional = False
 opt.wgangp_lambda = 10.0
 opt.n_classes = 10
 opt.nz = (100,1,1)
 opt.num_disc_iters = 5
+opt.checkpoints = [1000, 2000, 5000, 10000, 20000, 40000, 60000, 100000]
 
 data = datasets.MNISTDataset()
 

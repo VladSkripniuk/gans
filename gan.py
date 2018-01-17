@@ -24,6 +24,7 @@ class Options:
         self.n_classes = 4
         self.conditional = False
         self.shuffle_labels = False
+        self.checkpoints = []
         
 
 TENSORBOARD = True
