@@ -37,9 +37,12 @@ class GAN_base():
         self.optimizerD, self.optimizerG = optimizerD, optimizerG
 
         self.opt = opt
-        if self.opt.cuda:
-            self.netD.cuda()
-            self.netG.cuda()
+
+        if self.opt is not None and self.opt.cuda:
+            if self.netD is not None:
+                self.netD.cuda()
+            if self.netG is not None:
+                self.netG.cuda()
 
 
     def compute_disc_score(self, data_a, data_b):
