@@ -108,9 +108,9 @@ def c2st(netG, netG_path, netD, gan_type, opt):
 
     return loss_list, roc_list
 
-opt = gan.Options()
-opt.cuda = True
-opt.nz = (100,1,1)
-opt.batch_size = 50
+# opt = gan.Options()
+# opt.cuda = True
+# opt.nz = (100,1,1)
+# opt.batch_size = 50
 
-print(c2st(Generator(), 'wgan_test/gen_1000.pth', Discriminator(), wgan.WGANGP, opt))
+# print(c2st(Generator(), 'wgan_test/gen_1000.pth', Discriminator(), wgan.WGANGP, opt))
