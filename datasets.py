@@ -82,7 +82,7 @@ class ConditionalGaussianMixtureDataset(Dataset):
 class MNISTDataset(Dataset):
     """Points from multiple gaussians"""
 
-    def __init__(self):
+    def __init__(self, selected=None):
         self.data = dset.MNIST(root = './data/',
                          transform=transforms.Compose([
                                transforms.Scale(32),
@@ -90,12 +90,17 @@ class MNISTDataset(Dataset):
                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                            ]),
                           download = True)
+        if selected is not None:
+            self.index = np.arange(len(self.data))[np.where(self.data.train_labels.numpy() == selected)[0]]
+            # self.data = torch.masked_select(self.data.train_data, (self.data.train_labels == selected).view(-1, 1, 1)).view(-1, 1, 32, 32)
+        else:
+            self.index = np.arange(len(self.data))
 
     def __len__(self):
-        return len(self.data)
+        return len(self.index)
 
     def __getitem__(self, idx):
-        return self.data[idx][0]
+        return self.data[self.index[idx]][0]
         
 class labeledMNISTDataset(Dataset):
     """Points from multiple gaussians"""
