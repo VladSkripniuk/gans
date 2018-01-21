@@ -91,12 +91,12 @@ DIM = 64
 OUTPUT_DIM = 784
 
 class Generator(nn.Module):
-    def __init__(self):
+    def __init__(self, nz=100):
         super(Generator, self).__init__()
 
         preprocess = nn.Sequential(
             # nn.Linear(100, 4*4*4*DIM),
-            nn.ConvTranspose2d(100, 4*DIM, 4),
+            nn.ConvTranspose2d(nz, 4*DIM, 4),
             nn.ReLU(True),
         )
         block1 = nn.Sequential(
@@ -132,11 +132,11 @@ class Generator(nn.Module):
         return output#.view(-1, OUTPUT_DIM)
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, nc=1):
         super(Discriminator, self).__init__()
 
         main = nn.Sequential(
-            nn.Conv2d(1, DIM, 5, stride=2, padding=2),
+            nn.Conv2d(nc, DIM, 5, stride=2, padding=2),
             # nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
             nn.ReLU(True),
             nn.Conv2d(DIM, 2*DIM, 5, stride=2, padding=2),
