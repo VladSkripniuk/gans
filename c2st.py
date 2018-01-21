@@ -92,8 +92,13 @@ def c2st(netG, netG_path, netD, gan_type, opt):
             batch_real = next(iterator_real)
             batch_fake = next(iterator_fake)
 
-            y_true = y_true + [0] * batch_real.size()[0]
-            y_true = y_true + [1] * batch_real.size()[0]
+            if gan_type == wgan.WGANGP:
+                y_true = y_true + [0] * batch_real.size()[0]
+                y_true = y_true + [1] * batch_real.size()[0]
+            else:
+                y_true = y_true + [1] * batch_real.size()[0]
+                y_true = y_true + [0] * batch_real.size()[0]
+
 
             y_score = y_score + list(gan_t.netD(batch_real).cpu().data.numpy())
             y_score = y_score + list(gan_t.netD(batch_fake).cpu().data.numpy())
