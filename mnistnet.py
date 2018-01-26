@@ -91,22 +91,40 @@ DIM = 64
 OUTPUT_DIM = 784
 
 class Generator(nn.Module):
-    def __init__(self, nz=100):
+    def __init__(self, nz=100, BN=False):
         super(Generator, self).__init__()
 
-        preprocess = nn.Sequential(
-            # nn.Linear(100, 4*4*4*DIM),
-            nn.ConvTranspose2d(nz, 4*DIM, 4),
-            nn.ReLU(True),
-        )
-        block1 = nn.Sequential(
-            nn.ConvTranspose2d(4*DIM, 2*DIM, 5),
-            nn.ReLU(True),
-        )
-        block2 = nn.Sequential(
-            nn.ConvTranspose2d(2*DIM, DIM, 5),
-            nn.ReLU(True),
-        )
+        if BN:
+            preprocess = nn.Sequential(
+                # nn.Linear(100, 4*4*4*DIM),
+                nn.ConvTranspose2d(nz, 4*DIM, 4),
+                nn.BatchNorm2d(4*DIM),
+                nn.ReLU(True),
+            )
+            block1 = nn.Sequential(
+                nn.ConvTranspose2d(4*DIM, 2*DIM, 5),
+                nn.BatchNorm2d(2*DIM),
+                nn.ReLU(True),
+            )
+            block2 = nn.Sequential(
+                nn.ConvTranspose2d(2*DIM, DIM, 5),
+                nn.BatchNorm2d(DIM),
+                nn.ReLU(True),
+            )
+        else:
+            preprocess = nn.Sequential(
+                # nn.Linear(100, 4*4*4*DIM),
+                nn.ConvTranspose2d(nz, 4*DIM, 4),
+                nn.ReLU(True),
+            )
+            block1 = nn.Sequential(
+                nn.ConvTranspose2d(4*DIM, 2*DIM, 5),
+                nn.ReLU(True),
+            )
+            block2 = nn.Sequential(
+                nn.ConvTranspose2d(2*DIM, DIM, 5),
+                nn.ReLU(True),
+            )
         deconv_out = nn.ConvTranspose2d(DIM, 1, 10, stride=2)
 
         self.block1 = block1
@@ -132,24 +150,44 @@ class Generator(nn.Module):
         return output#.view(-1, OUTPUT_DIM)
 
 class Discriminator(nn.Module):
-    def __init__(self, nc=1):
+    def __init__(self, nc=1, BN=False):
         super(Discriminator, self).__init__()
 
-        main = nn.Sequential(
-            nn.Conv2d(nc, DIM, 5, stride=2, padding=2),
-            # nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Conv2d(DIM, 2*DIM, 5, stride=2, padding=2),
-            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Conv2d(2*DIM, 4*DIM, 5, stride=2, padding=2),
-            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            # nn.LeakyReLU(True),
-            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            # nn.LeakyReLU(True),
-        )
+        if BN:
+            main = nn.Sequential(
+                nn.Conv2d(nc, DIM, 5, stride=2, padding=2),
+                # nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
+                nn.BatchNorm2d(DIM),
+                nn.ReLU(True),
+                nn.Conv2d(DIM, 2*DIM, 5, stride=2, padding=2),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                nn.BatchNorm2d(2*DIM),
+                nn.ReLU(True),
+                nn.Conv2d(2*DIM, 4*DIM, 5, stride=2, padding=2),
+                nn.BatchNorm2d(4*DIM),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                nn.ReLU(True),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                # nn.LeakyReLU(True),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                # nn.LeakyReLU(True),
+            )
+        else:
+            main = nn.Sequential(
+                nn.Conv2d(nc, DIM, 5, stride=2, padding=2),
+                # nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
+                nn.ReLU(True),
+                nn.Conv2d(DIM, 2*DIM, 5, stride=2, padding=2),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                nn.ReLU(True),
+                nn.Conv2d(2*DIM, 4*DIM, 5, stride=2, padding=2),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                nn.ReLU(True),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                # nn.LeakyReLU(True),
+                # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+                # nn.LeakyReLU(True),
+            )
         self.main = main
         self.output = nn.Linear(4*4*4*DIM, 1)
 
