@@ -95,6 +95,7 @@ class MNISTDataset(Dataset):
             # self.data = torch.masked_select(self.data.train_data, (self.data.train_labels == selected).view(-1, 1, 1)).view(-1, 1, 32, 32)
         else:
             self.index = np.arange(len(self.data))
+        print(type(self.index))
 
     def __len__(self):
         return len(self.index)
