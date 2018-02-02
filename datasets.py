@@ -177,16 +177,16 @@ class LINDataset(Dataset):
 
     def __init__(self, protein='Arp3', basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/', transform=None):
         self.path = basedir + protein + '/'
-        self.filenames = filter(lambda x: (x.endswith('.jpg') or x.endswith('.jpeg') or x.endswith('.png')), os.listdir(self.path))
+        self.filenames = list(filter(lambda x: (x.endswith('.jpg') or x.endswith('.jpeg') or x.endswith('.png')), os.listdir(self.path)))
         self.transform = transform
 
         self.images = []
 
         for filename in self.filenames:
             img = imread(self.path + filename)
-            img = resize(img, (24, 40))
+            # img = resize(img, (24, 40))
             img = img_as_float(img)
-            img = img[:,:,:2].reshape((2, 24, 40))
+            img = np.rollaxis(img[:,:,:2], 2, 0) #.reshape((2, 24, 40))
             img = torch.from_numpy(img)
 
             if self.transform:

@@ -7,7 +7,7 @@ import torch.nn.functional as F
 # https://github.com/sunshineatnoon/Paper-Implementations/tree/master/dcgan
 
 class mnistnet_G(nn.Module):
-    def __init__(self, nc=1, ngf=256, nz=100): # 256 ok
+    def __init__(self, nc=1, ngf=64, nz=100): # 256 ok
         super(mnistnet_G,self).__init__()
         self.layer1 = nn.Sequential(nn.ConvTranspose2d(nz,ngf*4,kernel_size=4),
                                  nn.BatchNorm2d(ngf*4),
@@ -33,7 +33,7 @@ class mnistnet_G(nn.Module):
         return out
 
 class mnistnet_D(nn.Module):
-    def __init__(self,nc=1,ndf=128): # 128 ok
+    def __init__(self,nc=1,ndf=64): # 128 ok
         super(mnistnet_D,self).__init__()
         # 32 x 32
         self.layer1 = nn.Sequential(nn.Conv2d(nc,ndf,kernel_size=4,stride=2,padding=1),
@@ -200,21 +200,25 @@ class Discriminator(nn.Module):
 
 
 class LINnet_G(nn.Module):
-    def __init__(self, nc=1, ngf=256, nz=100): # 256 ok
+    def __init__(self, nc=1, ngf=64, nz=100): # 256 ok
         super(LINnet_G,self).__init__()
-        self.layer1 = nn.Sequential(nn.ConvTranspose2d(nz,ngf*4,kernel_size=(3, 5)),
+        self.layer1 = nn.Sequential(nn.ConvTranspose2d(nz,ngf*8,kernel_size=(3, 5)),
+                                 nn.BatchNorm2d(ngf*8),
+                                 nn.ReLU())
+        # 3 x 5
+        self.layer2 = nn.Sequential(nn.ConvTranspose2d(ngf*8,ngf*4,kernel_size=4,stride=2,padding=1),
                                  nn.BatchNorm2d(ngf*4),
                                  nn.ReLU())
-        # 4 x 4
-        self.layer2 = nn.Sequential(nn.ConvTranspose2d(ngf*4,ngf*2,kernel_size=4,stride=2,padding=1),
+        # 6 x 10
+        self.layer3 = nn.Sequential(nn.ConvTranspose2d(ngf*4,ngf*2,kernel_size=4,stride=2,padding=1),
                                  nn.BatchNorm2d(ngf*2),
                                  nn.ReLU())
-        # 8 x 8
-        self.layer3 = nn.Sequential(nn.ConvTranspose2d(ngf*2,ngf,kernel_size=4,stride=2,padding=1),
+        # 12 x 20
+        self.layer4 = nn.Sequential(nn.ConvTranspose2d(ngf*2,ngf,kernel_size=4,stride=2,padding=1),
                                  nn.BatchNorm2d(ngf),
                                  nn.ReLU())
-        # 16 x 16
-        self.layer4 = nn.Sequential(nn.ConvTranspose2d(ngf,nc,kernel_size=4,stride=2,padding=1),
+        # 24 x 40
+        self.layer5 = nn.Sequential(nn.ConvTranspose2d(ngf,nc,kernel_size=4,stride=2,padding=1),
                                  # nn.Sigmoid())
                                  nn.Tanh())
 
@@ -223,25 +227,30 @@ class LINnet_G(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
+        out = self.layer5(out)
         return out
 
 class LINnet_D(nn.Module):
-    def __init__(self,nc=1,ndf=128): # 128 ok
+    def __init__(self,nc=1,ndf=64): # 128 ok
         super(LINnet_D,self).__init__()
-        # 32 x 32
+        # 48 x 80
         self.layer1 = nn.Sequential(nn.Conv2d(nc,ndf,kernel_size=4,stride=2,padding=1),
                                  nn.BatchNorm2d(ndf),
                                  nn.LeakyReLU(0.2,inplace=True))
-        # 16 x 16
+        # 24 x 40
         self.layer2 = nn.Sequential(nn.Conv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1),
                                  nn.BatchNorm2d(ndf*2),
                                  nn.LeakyReLU(0.2,inplace=True))
-        # 8 x 8
+        # 12 x 20
         self.layer3 = nn.Sequential(nn.Conv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1),
                                  nn.BatchNorm2d(ndf*4),
                                  nn.LeakyReLU(0.2,inplace=True))
-        # 4 x 4
-        self.layer4 = nn.Sequential(nn.Conv2d(ndf*4,1,kernel_size=(3, 5),stride=1,padding=0))#,
+        # 6 x 10
+        self.layer4 = nn.Sequential(nn.Conv2d(ndf*4,ndf*8,kernel_size=4,stride=2,padding=1),
+                                 nn.BatchNorm2d(ndf*8),
+                                 nn.LeakyReLU(0.2,inplace=True))
+        # 3 x 5
+        self.layer5 = nn.Sequential(nn.Conv2d(ndf*8,1,kernel_size=(3, 5),stride=1,padding=0))#,
                                  # nn.Sigmoid())
 
     def forward(self,x):
@@ -249,4 +258,5 @@ class LINnet_D(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
+        out = self.layer5(out)
         return out.view(-1)
