@@ -9,8 +9,11 @@ from numpy.random import multivariate_normal, choice, normal, randint
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 
-
 import os
+
+from skimage.io import imread
+from skimage import img_as_float
+from skimage.transform import resize
 
 class GaussianMixtureDataset(Dataset):
     """Points from multiple gaussians"""
@@ -95,7 +98,6 @@ class MNISTDataset(Dataset):
             # self.data = torch.masked_select(self.data.train_data, (self.data.train_labels == selected).view(-1, 1, 1)).view(-1, 1, 32, 32)
         else:
             self.index = np.arange(len(self.data))
-        print(type(self.index))
 
     def __len__(self):
         return len(self.index)
@@ -167,3 +169,43 @@ class MyDataLoader():
                 
                 yield batch
             self.i_epoch += 1
+
+
+
+class LINDataset(Dataset):
+    """Points from multiple gaussians"""
+
+    def __init__(self, protein='Arp3', basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/', transform=None):
+        self.path = basedir + protein + '/'
+        self.filenames = filter(lambda x: (x.endswith('.jpg') or x.endswith('.jpeg') or x.endswith('.png')), os.listdir(self.path))
+        self.transform = transform
+
+        self.images = []
+
+        for filename in self.filenames:
+            img = imread(self.path + filename)
+            img = resize(img, (24, 40))
+            img = img_as_float(img)
+            img = img[:,:,:2].reshape((2, 24, 40))
+            img = torch.from_numpy(img)
+
+            if self.transform:
+                img = self.transform(img)
+
+            self.images.append(img)
+
+        
+    def __len__(self):
+        return len(self.filenames)
+
+    def __getitem__(self, idx):
+        # img = imread(self.path + self.filenames[idx])
+        # img = resize(img, (24, 40))
+        # img = img_as_float(img)
+        # img = img[:,:,:2].reshape((2, 24, 40))
+        # img = torch.from_numpy(img)
+
+        # if self.transform:
+        #     img = self.transform(img)
+
+        return self.images[idx]
