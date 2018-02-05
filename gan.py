@@ -157,8 +157,10 @@ class GAN_base():
 
 
     def save(self, tag):
-        torch.save(self.netG.state_dict(), self.opt.path + 'gen_{}.pth'.format(tag))
-        torch.save(self.netD.state_dict(), self.opt.path + 'disc_{}.pth'.format(tag))
+        if self.netG is not None:
+            torch.save(self.netG.state_dict(), self.opt.path + 'gen_{}.pth'.format(tag))
+        if self.netD is not None:
+            torch.save(self.netD.state_dict(), self.opt.path + 'disc_{}.pth'.format(tag))
 
 
     def join_xy(self, batch):
@@ -200,7 +202,7 @@ class GAN_base():
             return torch.zeros(shape).normal_(0, 1)
 
 
-    def gen_fake_data(self, batch_size, nz, noise=None, label=None):
+    def gen_fake_data(self, batch_size, nz, noise=None, label=None, drop_labels=False):
         if noise is None:
             noise = Variable(self.gen_latent_noise(batch_size, nz))
 
@@ -211,13 +213,18 @@ class GAN_base():
                 y = torch.autograd.Variable(torch.LongTensor(batch_size).zero_() + label)
                 if self.opt.cuda:
                     y = y.cuda()
+
             noise = self.join_xy((noise, y))
-            return self.netG(noise), y
+            
+            if drop_labels:
+                return self.netG(noise)
+            else:
+                return self.netG(noise), y
 
         return self.netG(noise)
 
 
-    def fake_data_generator(self, batch_size, nz, iterator_data):
+    def fake_data_generator(self, batch_size, nz, iterator_data, selected=None, drop_labels=False):
         if self.opt.shuffle_labels:
             i = 0
             while True:
@@ -239,7 +246,7 @@ class GAN_base():
 
         else:
             while True:
-                yield self.gen_fake_data(batch_size, nz)
+                yield self.gen_fake_data(batch_size, nz, label=selected, drop_labels=drop_labels)
 
 
 class GAN(GAN_base):
