@@ -21,44 +21,41 @@ import wgan
 import mnistnet
 from mnistnet import Generator, Discriminator
 
-import copy
 
 N_ATTEMPTS = 10
 N_EPOCHS = 5
 
-class modifiedDataset(Dataset):
-    def __init__(self, data):
-        self.data = data
+from datasets import MNISTDataset
 
-    def __len__(self):
-        return len(self.data)
+from copy import copy, deepcopy
 
-    def __getitem__(self, idx):
-        return self.data[idx][0].cuda()
+N_ATTEMPTS = 10
+N_EPOCHS = 5
 
-def variableIter(dataloader):
-    for batch in dataloader:
-        yield Variable(batch).cuda()
 
-def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset):
+def varIter(data, opt):
+    for batch in data:
+        if opt.cuda:
+            yield Variable(batch).cuda()
+        else:
+            yield Variable(batch)
+
+
+def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset, selected=None):
 
     netG.load_state_dict(torch.load(netG_path))
     netG.eval()
 
     gan1 = gan.GAN(netG, None, None, None, opt)
-
-    iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz, None)
+    opt = copy(opt)
+    opt.conditional = False
 
     data = real_dataset
-    # data = datasets.MNIST(root = './data/',
-    #                          transform=transforms.Compose([
-    #                                transforms.Scale(32),
-    #                                transforms.ToTensor(),
-    #                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    #                            ]),
-    #                           download = True, train=False)
 
-    # data = modifiedDataset(data)
+    if selected is not None:
+        iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz, None, selected=selected, drop_labels=True)
+    else:
+        iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz)
 
     random_state = [23, 42, 180, 34, 194, 3424, 234, 23423, 221, 236]
 
@@ -69,7 +66,7 @@ def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset):
 
         train_indices, test_indices = train_test_split(range(len(data)), test_size=0.1, random_state=random_state[attempt])
 
-        netD = copy.deepcopy(netD_0)
+        netD = deepcopy(netD_0)
         # netD = mnistnet.Discriminator()
         netD.train()
         optimizerD = torch.optim.Adam(netD.parameters(), lr=2e-4, betas=(.5, .999))
@@ -77,14 +74,13 @@ def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset):
 
 
         for _ in range(N_EPOCHS):
-            iterator_real = variableIter(DataLoader(data, sampler=SubsetRandomSampler(train_indices), batch_size=opt.batch_size))
-            print(len(data))
-            for i_iter in tqdm(range(180)):
+            iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(train_indices), batch_size=opt.batch_size), opt)
+            for i_iter in tqdm(range(int(len(train_indices) / opt.batch_size))):
                 gan_t.train_D_one_step(iterator_real, iterator_fake)
 
-        netD.eval()
+        gan_t.save(attempt)
 
-        iterator_real = variableIter(DataLoader(data, sampler=SubsetRandomSampler(test_indices), batch_size=opt.batch_size))
+        iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(test_indices), batch_size=opt.batch_size), opt)
 
         err = 0
 
@@ -92,7 +88,7 @@ def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset):
         y_true = []
         y_score = []
 
-        for i in range(20):
+        for i in range(int(len(test_indices) / opt.batch_size)):
             batch_real = next(iterator_real)
             batch_fake = next(iterator_fake)
 
