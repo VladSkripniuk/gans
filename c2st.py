@@ -21,41 +21,32 @@ import wgan
 import mnistnet
 from mnistnet import Generator, Discriminator
 
+from datasets import MNISTDataset
+
+from copy import copy
+
 N_ATTEMPTS = 10
 N_EPOCHS = 5
 
-class modifiedDataset(Dataset):
-    def __init__(self, data):
-        self.data = data
+def varIter(data, opt):
+    for batch in data:
+        if opt.cuda:
+            yield Variable(batch).cuda()
+        else:
+            yield Variable(batch)
 
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        return self.data[idx][0].cuda()
-
-def variableIter(dataloader):
-    for batch in dataloader:
-        yield Variable(batch)
-
-def c2st(netG, netG_path, netD, gan_type, opt):
+def c2st(netG, netG_path, netD, gan_type, opt, selected=None):
 
     netG.load_state_dict(torch.load(netG_path))
     netG.eval()
 
     gan1 = gan.GAN(netG, None, None, None, opt)
+    opt = copy(opt)
+    opt.conditional = False
 
-    iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz, None)
+    iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz, None, selected=selected, drop_labels=True)
 
-    data = datasets.MNIST(root = './data/',
-                             transform=transforms.Compose([
-                                   transforms.Scale(32),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                               ]),
-                              download = True, train=False)
-
-    data = modifiedDataset(data)
+    data = MNISTDataset(selected=selected, train=False)
 
     random_state = [23, 42, 180, 34, 194, 3424, 234, 23423, 221, 236]
 
@@ -73,14 +64,13 @@ def c2st(netG, netG_path, netD, gan_type, opt):
 
 
         for _ in range(N_EPOCHS):
-            iterator_real = variableIter(DataLoader(data, sampler=SubsetRandomSampler(train_indices), batch_size=opt.batch_size))
-
-            for i_iter in tqdm(range(180)):
+            iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(train_indices), batch_size=opt.batch_size), opt)
+            for i_iter in tqdm(range(int(len(train_indices) / opt.batch_size))):
                 gan_t.train_D_one_step(iterator_real, iterator_fake)
 
-        netD.eval()
+        gan_t.save(attempt)
 
-        iterator_real = variableIter(DataLoader(data, sampler=SubsetRandomSampler(test_indices), batch_size=opt.batch_size))
+        iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(test_indices), batch_size=opt.batch_size), opt)
 
         err = 0
 
@@ -88,7 +78,7 @@ def c2st(netG, netG_path, netD, gan_type, opt):
         y_true = []
         y_score = []
 
-        for i in range(20):
+        for i in range(int(len(test_indices) / opt.batch_size)):
             batch_real = next(iterator_real)
             batch_fake = next(iterator_fake)
 
