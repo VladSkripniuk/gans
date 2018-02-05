@@ -23,15 +23,11 @@ from mnistnet import Generator, Discriminator
 
 
 N_ATTEMPTS = 10
-N_EPOCHS = 5
+N_EPOCHS = 10
 
 from datasets import MNISTDataset
 
 from copy import copy, deepcopy
-
-N_ATTEMPTS = 10
-N_EPOCHS = 5
-
 
 def varIter(data, opt):
     for batch in data:
@@ -55,7 +51,7 @@ def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset, selected=None):
     if selected is not None:
         iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz, None, selected=selected, drop_labels=True)
     else:
-        iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz)
+        iterator_fake = gan1.fake_data_generator(opt.batch_size, opt.nz, None)
 
     random_state = [23, 42, 180, 34, 194, 3424, 234, 23423, 221, 236]
 
