@@ -93,8 +93,13 @@ class MNISTDataset(Dataset):
                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                            ]),
                           download = True, train=train)
+
         if selected is not None:
-            self.index = np.arange(len(self.data))[np.where(self.data.train_labels.numpy() == selected)[0]]
+            if train:
+                labels = self.data.train_labels.numpy()
+            else:
+                labels = self.data.test_labels.numpy()
+            self.index = np.arange(len(self.data))[np.where(labels == selected)[0]]
             # self.data = torch.masked_select(self.data.train_data, (self.data.train_labels == selected).view(-1, 1, 1)).view(-1, 1, 32, 32)
         else:
             self.index = np.arange(len(self.data))
