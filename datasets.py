@@ -187,6 +187,7 @@ class LINDataset(Dataset):
             # img = resize(img, (24, 40))
             img = img_as_float(img)
             img = np.rollaxis(img[:,:,:2], 2, 0) #.reshape((2, 24, 40))
+            img = np.asarray(img, dtype=np.float32)
             img = torch.from_numpy(img)
 
             if self.transform:
