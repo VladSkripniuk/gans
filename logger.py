@@ -46,7 +46,15 @@ class Logger():
 		self.tag = log['tag']
 
 
+	def save(self):
+		log = {'script': self.script, 'date': self.date, 'tag': self.tag, 'store': self.store}
+		
+		with open(self.filename, 'wb') as f:
+			_pickle.dump(log, f)
+
+
 	def close(self):
 		log = {'script': self.script, 'date': self.date, 'tag': self.tag, 'store': self.store}
 		
-		_pickle.dump(log, open(self.filename, 'wb'))
+		with open(self.filename, 'wb') as f:
+			_pickle.dump(log, f)
