@@ -19,11 +19,13 @@ import gan
 import wgan
 
 import mnistnet
-from mnistnet import Generator, Discriminator
+
+import datasets
 
 
 N_ATTEMPTS = 10
 N_EPOCHS = 10
+N_ITER = 300
 
 from datasets import MNISTDataset
 
@@ -37,7 +39,7 @@ def varIter(data, opt):
             yield Variable(batch)
 
 
-def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset, selected=None):
+def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset, selected=None, logger=None):
 
     netG.load_state_dict(torch.load(netG_path))
     netG.eval()
@@ -69,14 +71,30 @@ def c2st(netG, netG_path, netD_0, gan_type, opt, real_dataset, selected=None):
         gan_t = gan_type(None, netD, optimizerD, None, opt)
 
 
-        for _ in range(N_EPOCHS):
-            iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(train_indices), batch_size=opt.batch_size), opt)
-            for i_iter in tqdm(range(int(len(train_indices) / opt.batch_size))):
-                gan_t.train_D_one_step(iterator_real, iterator_fake)
+        # for _ in range(N_EPOCHS):
+        #     iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(train_indices), batch_size=opt.batch_size), opt)
+        #     for i_iter in tqdm(range(int(len(train_indices) / opt.batch_size))):
+        #         gan_t.train_D_one_step(iterator_real, iterator_fake)
+
+        iterator_real = datasets.MyDataLoader().return_iterator(
+            DataLoader(data, sampler=SubsetRandomSampler(train_indices),
+                batch_size=opt.batch_size), is_cuda=opt.cuda,
+            conditional=opt.conditional, n_classes=opt.n_classes)
+
+        for i_iter in tqdm(range(N_ITER)):
+            loss, _, _ = gan_t.train_D_one_step(iterator_real, iterator_fake)
+            if logger is not None:
+                logger.add('disc_loss{}'.format(attempt), loss, i_iter)
+
 
         gan_t.save(attempt)
 
-        iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(test_indices), batch_size=opt.batch_size), opt)
+        # iterator_real = varIter(DataLoader(data, sampler=SubsetRandomSampler(test_indices), batch_size=opt.batch_size), opt)
+
+        iterator_real = datasets.MyDataLoader().return_iterator(
+            DataLoader(data, sampler=SubsetRandomSampler(test_indices),
+                batch_size=opt.batch_size), is_cuda=opt.cuda,
+            conditional=opt.conditional, n_classes=opt.n_classes)
 
         err = 0
 
