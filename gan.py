@@ -25,6 +25,7 @@ class Options:
         self.conditional = False
         self.shuffle_labels = False
         self.checkpoints = []
+        self.path = ''
         
 
 TENSORBOARD = True

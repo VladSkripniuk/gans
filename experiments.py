@@ -17,27 +17,27 @@ import lsgan
 
 opt = gan.Options()
 
-opt.cuda = False
-opt.path = 'wgan_test/'
-opt.num_iter = 100000
-opt.batch_size = 50
+opt.cuda = True
+opt.path = 'GANBNcond_40k/'
+opt.num_iter = 40000
+opt.batch_size = 128
 opt.visualize_nth = 2000
-opt.conditional = False
+opt.conditional = True
 opt.wgangp_lambda = 10.0
 opt.n_classes = 10
 opt.nz = (100,1,1)
-opt.num_disc_iters = 5
+opt.num_disc_iters = 1
 opt.checkpoints = [1000, 2000, 5000, 10000, 20000, 40000, 60000, 100000]
 
-data = datasets.MNISTDataset()
+data = datasets.labeledMNISTDataset()
 
 mydataloader = datasets.MyDataLoader()
 data_iter = mydataloader.return_iterator(DataLoader(data, batch_size=opt.batch_size, shuffle=True, num_workers=1), is_cuda=opt.cuda, conditional=opt.conditional, pictures=True)
 
-netG = mnistnet.Generator()
-# netG = mnistnet.mnistnet_G()
-# netD = mnistnet.mnistnet_D()
-netD = mnistnet.Discriminator()
+# netG = mnistnet.Generator(BN=True)
+netG = mnistnet.mnistnet_G(nz=110)
+netD = mnistnet.mnistnet_D(nc=11)
+# netD = mnistnet.Discriminator(BN=False)
 
 
 
