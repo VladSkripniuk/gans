@@ -105,7 +105,7 @@ class GAN_base():
         return errD, errG
 
 
-    def train(self, data_iter, opt=None):
+    def train(self, data_iter, opt=None, logger=None):
         if opt is not None:
             self.opt = opt
 
@@ -144,6 +144,10 @@ class GAN_base():
             if TENSORBOARD:
                 writer.add_scalar('disc_loss', errD, i_iter)
                 writer.add_scalar('gen_loss', errG, i_iter)
+
+            if logger is not None:
+                logger.add('disc_loss', errD, i_iter)
+                logger.add('gen_loss', errG, i_iter)
 
             gen_score_history.append(errG)
             disc_score_history.append(errD)
