@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from layers.SNConv2d import SNConv2d
 
 
 # https://github.com/sunshineatnoon/Paper-Implementations/tree/master/dcgan
@@ -71,6 +71,48 @@ class mnistnet_D(nn.Module):
         out = self.layer3(out)
         out = self.layer4(out)
         return out.view(-1)
+
+class mnistnet_DSN(nn.Module):
+    def __init__(self,nc=1,ndf=128,BN=True): # 128 ok
+        super(mnistnet_DSN,self).__init__()
+        if BN:
+            # 32 x 32
+            self.layer1 = nn.Sequential(SNConv2d(nc,ndf,kernel_size=4,stride=2,padding=1),
+                                     nn.BatchNorm2d(ndf),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 16 x 16
+            self.layer2 = nn.Sequential(SNConv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1),
+                                     nn.BatchNorm2d(ndf*2),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 8 x 8
+            self.layer3 = nn.Sequential(SNConv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1),
+                                     nn.BatchNorm2d(ndf*4),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 4 x 4
+            self.layer4 = nn.Sequential(SNConv2d(ndf*4,1,kernel_size=4,stride=1,padding=0))#,
+                                     # nn.Sigmoid())
+        else:
+            # 32 x 32
+            self.layer1 = nn.Sequential(SNConv2d(nc,ndf,kernel_size=4,stride=2,padding=1),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 16 x 16
+            self.layer2 = nn.Sequential(SNConv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 8 x 8
+            self.layer3 = nn.Sequential(SNConv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 4 x 4
+            self.layer4 = nn.Sequential(SNConv2d(ndf*4,1,kernel_size=4,stride=1,padding=0))#,
+            
+
+    def forward(self,x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        return out.view(-1)
+
+
 
 
 # improved wgan pytorch

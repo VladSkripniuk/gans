@@ -2,6 +2,8 @@ import numpy as np
 from tensorboardX import SummaryWriter
 
 
+from logger import Logger
+
 from c2st import c2st
 
 from mnistnet import Generator, Discriminator, mnistnet_D, mnistnet_G, LINnet_D, LINnet_G
@@ -18,67 +20,64 @@ from logger import Logger
 opt = gan.Options()
 opt.cuda = True
 opt.nz = (100,1,1)
-opt.batch_size = 50
+opt.batch_size = 64
+opt.path = '100kGAN_GANc2st/'
 
-for i in range(5,6):
+writer = SummaryWriter('100kGAN_GANc2st')
 
-    # opt.path = 'test_GAN_GANc2st/'.format(i)
-    opt.path = 'test_GAN_GANc2st/'
+opt.checkpoints = [1000, 2000, 5000, 10000, 20000, 40000, 60000, 100000, 200000, 300000, 500000]
 
-    writer = SummaryWriter(opt.path)
+logger = Logger(base_dir=opt.path, tag='100kGAN_GANc2st')
 
-    opt.checkpoints = [1000, 2000, 5000, 10000, 20000, 40000, 60000, 100000, 200000, 300000, 500000]
-    opt.checkpoints = [1000, 2000, 4000, 8000, 12000, 16000, 20000]
+# opt.path = 'test_GAN_GANc2st/'.format(i)
+opt.path = 'test_GAN_GANc2st/'
 
-    logger = Logger(base_dir=opt.path, tag=str(i))
+writer = SummaryWriter(opt.path)
 
-    for checkpoint in opt.checkpoints:
+opt.checkpoints = [1000, 2000, 5000, 10000, 20000, 40000, 60000, 100000, 200000, 300000, 500000]
+opt.checkpoints = [1000, 2000, 4000, 8000, 12000, 16000, 20000]
 
-        real_dataset = datasets.MNISTDataset(selected=i, train=False)
-        # print(len(real_dataset))
+logger = Logger(base_dir=opt.path, tag=str(i))
 
-        # real_dataset = datasets.LINDataset(protein='Arp3', transform=transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-        #     basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/')
+for checkpoint in opt.checkpoints:
 
-        log_t = Logger()
+    real_dataset = datasets.MNISTDataset(selected=i, train=False)
+    # print(len(real_dataset))
 
-        loss, roc = c2st(mnistnet_G(nc=1), 'oneclass_gans/{}/gen_{}.pth'.format(i, checkpoint), mnistnet_D(nc=1), gan.GAN, opt, real_dataset, logger=log_t)
+    # real_dataset = datasets.LINDataset(protein='Arp3', transform=transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    #     basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/')
 
-        loss = sorted(loss)
-        roc = sorted(roc)
+    log_t = Logger()
 
-        # writer.add_scalars('loss', {"0.1":loss[1],
-        #                             "0.5":loss[4],
-        #                             "0.9":loss[8]}, 10 * np.log10(checkpoint/1000))
+    loss, roc = c2st(mnistnet_G(nc=1), 'oneclass_gans/{}/gen_{}.pth'.format(i, checkpoint), mnistnet_D(nc=1), gan.GAN, opt, real_dataset, logger=log_t)
 
-        # writer.add_scalars('roc', {"0.1":roc[1],
-        #                             "0.5":roc[4],
-        #                             "0.9":roc[8]}, 10 * np.log10(checkpoint/1000))
+    loss = sorted(loss)
+    roc = sorted(roc)
 
 
-        # print(log_t.store)
-        for key, value in log_t.store.items():
-            logger.store['{}_{}'.format(checkpoint, key)] = log_t.store[key]
+    for key, value in log_t.store.items():
+        logger.store['{}_{}'.format(checkpoint, key)] = log_t.store[key]
 
-        logger.add('c2st_loss', {"0.1":loss[1],
-                                    "0.5":loss[4],
-                                    "0.9":loss[8]}, checkpoint)
+    logger.add('c2st_loss', {"0.1":loss[1],
+                                "0.5":loss[4],
+                                "0.9":loss[8]}, checkpoint)
 
-        logger.add('c2st_roc', {"0.1":roc[1],
-                                    "0.5":roc[4],
-                                    "0.9":roc[8]}, checkpoint)
+    logger.add('c2st_roc', {"0.1":roc[1],
+                                "0.5":roc[4],
+                                "0.9":roc[8]}, checkpoint)
 
-        logger.save()
+    logger.save()
 
 
-        writer.add_scalars('loss', {"0.1":loss[1],
-                                    "0.5":loss[4],
-                                    "0.9":loss[8]}, 10 * np.log10(checkpoint/1000))
+    writer.add_scalars('loss', {"0.1":loss[1],
+                                "0.5":loss[4],
+                                "0.9":loss[8]}, 10 * np.log10(checkpoint/1000))
 
-        writer.add_scalars('roc', {"0.1":roc[1],
+    writer.add_scalars('roc', {"0.1":roc[1],
                                     "0.5":roc[4],
                                     "0.9":roc[8]}, 10 * np.log10(checkpoint/1000))
 
 
-    writer.close()
-    logger.close()
+
+writer.close()
+logger.close()
