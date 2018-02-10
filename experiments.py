@@ -24,7 +24,7 @@ opt.num_iter = 100000
 opt.batch_size = 64
 
 opt.visualize_nth = 2000
-opt.conditional = True
+opt.conditional = False
 opt.wgangp_lambda = 10.0
 opt.n_classes = 10
 opt.nz = (100,1,1)

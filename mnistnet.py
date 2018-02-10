@@ -7,7 +7,7 @@ import torch.nn.functional as F
 # https://github.com/sunshineatnoon/Paper-Implementations/tree/master/dcgan
 
 class mnistnet_G(nn.Module):
-    def __init__(self, nc=1, ngf=256, nz=100): # 256 ok
+    def __init__(self, nc=1, ngf=128, nz=100): # 256 ok
         super(mnistnet_G,self).__init__()
         self.layer1 = nn.Sequential(nn.ConvTranspose2d(nz,ngf*4,kernel_size=4),
                                  nn.BatchNorm2d(ngf*4),
