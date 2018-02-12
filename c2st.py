@@ -25,7 +25,7 @@ import datasets
 
 N_ATTEMPTS = 10
 N_EPOCHS = 10
-N_ITER = 300
+N_ITER = 1000
 
 from datasets import MNISTDataset
 
