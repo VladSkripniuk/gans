@@ -219,27 +219,43 @@ class LINnet_G(nn.Module):
         return out
 
 class LINnet_D(nn.Module):
-    def __init__(self,nc=1,ndf=64): # 128 ok
+    def __init__(self,nc=1,ndf=64, BN=True): # 128 ok
         super(LINnet_D,self).__init__()
         # 48 x 80
-        self.layer1 = nn.Sequential(nn.Conv2d(nc,ndf,kernel_size=4,stride=2,padding=1),
-                                 nn.BatchNorm2d(ndf),
-                                 nn.LeakyReLU(0.2,inplace=True))
-        # 24 x 40
-        self.layer2 = nn.Sequential(nn.Conv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1),
-                                 nn.BatchNorm2d(ndf*2),
-                                 nn.LeakyReLU(0.2,inplace=True))
-        # 12 x 20
-        self.layer3 = nn.Sequential(nn.Conv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1),
-                                 nn.BatchNorm2d(ndf*4),
-                                 nn.LeakyReLU(0.2,inplace=True))
-        # 6 x 10
-        self.layer4 = nn.Sequential(nn.Conv2d(ndf*4,ndf*8,kernel_size=4,stride=2,padding=1),
-                                 nn.BatchNorm2d(ndf*8),
-                                 nn.LeakyReLU(0.2,inplace=True))
-        # 3 x 5
-        self.layer5 = nn.Sequential(nn.Conv2d(ndf*8,1,kernel_size=(3, 5),stride=1,padding=0))#,
-                                 # nn.Sigmoid())
+        if BN:
+            self.layer1 = nn.Sequential(nn.Conv2d(nc,ndf,kernel_size=4,stride=2,padding=1),
+                                     nn.BatchNorm2d(ndf),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 24 x 40
+            self.layer2 = nn.Sequential(nn.Conv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1),
+                                     nn.BatchNorm2d(ndf*2),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 12 x 20
+            self.layer3 = nn.Sequential(nn.Conv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1),
+                                     nn.BatchNorm2d(ndf*4),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 6 x 10
+            self.layer4 = nn.Sequential(nn.Conv2d(ndf*4,ndf*8,kernel_size=4,stride=2,padding=1),
+                                     nn.BatchNorm2d(ndf*8),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 3 x 5
+            self.layer5 = nn.Sequential(nn.Conv2d(ndf*8,1,kernel_size=(3, 5),stride=1,padding=0))#,
+                                     # nn.Sigmoid())
+        else:
+            self.layer1 = nn.Sequential(nn.Conv2d(nc,ndf,kernel_size=4,stride=2,padding=1),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 24 x 40
+            self.layer2 = nn.Sequential(nn.Conv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 12 x 20
+            self.layer3 = nn.Sequential(nn.Conv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 6 x 10
+            self.layer4 = nn.Sequential(nn.Conv2d(ndf*4,ndf*8,kernel_size=4,stride=2,padding=1),
+                                     nn.LeakyReLU(0.2,inplace=True))
+            # 3 x 5
+            self.layer5 = nn.Sequential(nn.Conv2d(ndf*8,1,kernel_size=(3, 5),stride=1,padding=0))#,
+            
 
     def forward(self,x):
         out = self.layer1(x)
