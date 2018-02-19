@@ -25,6 +25,7 @@ opt.batch_size = 64
 opt.checkpoints = [1000, 2000, 5000, 10000, 20000, 40000, 60000, 100000, 200000, 300000, 500000]
 
 dirname = 'LIN_gan500k6/'
+dirname = 'LIN_wganAlp14/'
 
 for point in opt.checkpoints:
 	# netG.load_state_dict(torch.load('LIN_gan500k/gen_100000.pth'))
@@ -42,7 +43,7 @@ for point in opt.checkpoints:
 	b[:,:2,:,:] = a
 	# b=a
 	b = b / 2.0 + 0.5
-	save_image(b, '{}/sample_fake{}.jpeg'.format(dirname, point))
+	save_image(b, '{}/sample_fake{}.png'.format(dirname, point))
 
 
 # opt = gan.Options()
