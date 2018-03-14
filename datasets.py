@@ -218,3 +218,31 @@ class LINDataset(Dataset):
         #     img = self.transform(img)
 
         return self.images[idx]
+
+class CIFAR(Dataset):
+    """Points from multiple gaussians"""
+
+    def __init__(self, selected=None, train=True):
+        self.data = dset.CIFAR10(root = './cifar/',
+                         transform=transforms.Compose([
+                               # transforms.Scale(32),
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                           ]),
+                          download = True, train=train)
+
+        if selected is not None:
+            if train:
+                labels = self.data.train_labels.numpy()
+            else:
+                labels = self.data.test_labels.numpy()
+            self.index = np.arange(len(self.data))[np.where(labels == selected)[0]]
+            # self.data = torch.masked_select(self.data.train_data, (self.data.train_labels == selected).view(-1, 1, 1)).view(-1, 1, 32, 32)
+        else:
+            self.index = np.arange(len(self.data))
+
+    def __len__(self):
+        return len(self.index)
+
+    def __getitem__(self, idx):
+        return self.data[self.index[idx]][0]

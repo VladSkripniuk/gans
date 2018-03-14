@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch
 from torch.autograd import Variable
 import torch.utils.data
+from torch import nn as nn
 
 import torchvision.utils as vutils
 from torchvision.utils import make_grid
@@ -105,7 +106,7 @@ class GAN_base():
         return errD, errG
 
 
-    def train(self, data_iter, opt=None, logger=None):
+    def train(self, data_iter, opt=None, logger=None, callback=None):
         if opt is not None:
             self.opt = opt
 
@@ -148,6 +149,9 @@ class GAN_base():
             if logger is not None:
                 logger.add('disc_loss', errD, i_iter)
                 logger.add('gen_loss', errG, i_iter)
+
+            if callback is not None:
+                callback(self, i_iter)
 
             gen_score_history.append(errG)
             disc_score_history.append(errD)

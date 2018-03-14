@@ -4,6 +4,15 @@ import torch.nn.functional as F
 from layers.SNConv2d import SNConv2d
 
 
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+
+
 # https://github.com/sunshineatnoon/Paper-Implementations/tree/master/dcgan
 
 class mnistnet_G(nn.Module):
@@ -24,6 +33,9 @@ class mnistnet_G(nn.Module):
         self.layer4 = nn.Sequential(nn.ConvTranspose2d(ngf,nc,kernel_size=4,stride=2,padding=1),
                                  # nn.Sigmoid())
                                  nn.Tanh())
+
+        self.apply(weights_init)
+
 
     def forward(self,x):
         out = self.layer1(x)
@@ -63,6 +75,9 @@ class mnistnet_D(nn.Module):
                                      nn.LeakyReLU(0.2,inplace=True))
             # 4 x 4
             self.layer4 = nn.Sequential(nn.Conv2d(ndf*4,1,kernel_size=4,stride=1,padding=0))#,
+
+
+        self.apply(weights_init)
             
 
     def forward(self,x):
@@ -111,9 +126,6 @@ class mnistnet_DSN(nn.Module):
         out = self.layer3(out)
         out = self.layer4(out)
         return out.view(-1)
-
-
-
 
 # improved wgan pytorch
 
@@ -290,3 +302,105 @@ class LINnet_D(nn.Module):
         out = self.layer4(out)
         out = self.layer5(out)
         return out.view(-1)
+
+class netG(nn.Module):
+    def __init__(self, nc=1, ngf=64, nz=100): # 256 ok
+        super(netG,self).__init__()
+        self.layer1 = nn.Sequential(nn.ConvTranspose2d(nz,ngf*8,kernel_size=4),
+                                 nn.BatchNorm2d(ngf*8),
+                                 nn.ReLU())
+        # 4 x 4
+        self.layer2 = nn.Sequential(nn.ConvTranspose2d(ngf*8,ngf*4,kernel_size=4,stride=2,padding=1),
+                                 nn.BatchNorm2d(ngf*4),
+                                 nn.ReLU())
+        # 8 x 8
+        self.layer3 = nn.Sequential(nn.ConvTranspose2d(ngf*4,ngf*2,kernel_size=4,stride=2,padding=1),
+                                 nn.BatchNorm2d(ngf*2),
+                                 nn.ReLU())
+        # 16 x 16
+        self.layer4 = nn.Sequential(nn.ConvTranspose2d(ngf*2,ngf,kernel_size=4,stride=2,padding=1),
+                                 nn.BatchNorm2d(ngf),
+                                 nn.ReLU())
+        # 16 x 16
+        self.layer5 = nn.Sequential(nn.ConvTranspose2d(ngf,nc,kernel_size=3,stride=1,padding=1),
+                                 # nn.Sigmoid())
+                                 nn.Tanh())
+
+
+        self.apply(weights_init)
+
+
+    def forward(self,x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        out = self.layer5(out)
+        return out
+
+class netD(nn.Module):
+    def __init__(self,nc=1,ndf=64,spec_norm=True,detach=False): # 128 ok
+        super(netD,self).__init__()
+        # 32 x 32
+        self.layer0_0 = nn.Sequential(SNConv2d(nc,ndf,kernel_size=3,stride=1,padding=1,spec_norm=spec_norm,detach=detach),
+                                 nn.LeakyReLU(0.1,inplace=True))
+
+        self.layer0_1 = nn.Sequential(SNConv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1,spec_norm=spec_norm,detach=detach),
+                                 nn.LeakyReLU(0.1,inplace=True))
+        
+        self.layer1_0 = nn.Sequential(SNConv2d(ndf*2,ndf*2,kernel_size=3,stride=1,padding=1,spec_norm=spec_norm,detach=detach),
+                                 nn.LeakyReLU(0.1,inplace=True))
+        
+        self.layer1_1 = nn.Sequential(SNConv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1,spec_norm=spec_norm,detach=detach),
+                                 nn.LeakyReLU(0.1,inplace=True))
+        
+        self.layer2_0 = nn.Sequential(SNConv2d(ndf*4,ndf*4,kernel_size=3,stride=1,padding=1,spec_norm=spec_norm,detach=detach),
+                                 nn.LeakyReLU(0.1,inplace=True))
+        
+        self.layer2_1 = nn.Sequential(SNConv2d(ndf*4,ndf*8,kernel_size=4,stride=2,padding=1,spec_norm=spec_norm,detach=detach),
+                                 nn.LeakyReLU(0.1,inplace=True))
+
+        self.layer3_0 = nn.Sequential(SNConv2d(ndf*8,ndf*8,kernel_size=3,stride=1,padding=1,spec_norm=spec_norm,detach=detach),
+                                 nn.LeakyReLU(0.1,inplace=True))
+
+        self.layer3_1 = nn.Sequential(SNConv2d(ndf*8,1,kernel_size=4,stride=1,padding=0,spec_norm=spec_norm,detach=detach),
+                                    )
+        # self.layer0_0 = nn.Sequential(nn.Conv2d(nc,ndf,kernel_size=3,stride=1,padding=1),
+        #                          nn.LeakyReLU(0.1,inplace=True))
+
+        # self.layer0_1 = nn.Sequential(nn.Conv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1),
+        #                          nn.LeakyReLU(0.1,inplace=True))
+        
+        # self.layer1_0 = nn.Sequential(nn.Conv2d(ndf*2,ndf*2,kernel_size=3,stride=1,padding=1),
+        #                          nn.LeakyReLU(0.1,inplace=True))
+        
+        # self.layer1_1 = nn.Sequential(nn.Conv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1),
+        #                          nn.LeakyReLU(0.1,inplace=True))
+        
+        # self.layer2_0 = nn.Sequential(nn.Conv2d(ndf*4,ndf*4,kernel_size=3,stride=1,padding=1),
+        #                          nn.LeakyReLU(0.1,inplace=True))
+        
+        # self.layer2_1 = nn.Sequential(nn.Conv2d(ndf*4,ndf*8,kernel_size=4,stride=2,padding=1),
+        #                          nn.LeakyReLU(0.1,inplace=True))
+
+        # self.layer3_0 = nn.Sequential(nn.Conv2d(ndf*8,ndf*8,kernel_size=3,stride=1,padding=1),
+        #                          nn.LeakyReLU(0.1,inplace=True))
+
+        # self.layer3_1 = nn.Sequential(nn.Conv2d(ndf*8,1,kernel_size=4,stride=1,padding=0),
+        #                             )
+        
+        self.apply(weights_init)
+            
+
+    def forward(self,x):
+        out = x
+        out = self.layer0_0(out)
+        out = self.layer0_1(out)
+        out = self.layer1_0(out)
+        out = self.layer1_1(out)
+        out = self.layer2_0(out)
+        out = self.layer2_1(out)
+        out = self.layer3_0(out)
+        out = self.layer3_1(out)
+        return out.view(-1)
+
