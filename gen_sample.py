@@ -9,6 +9,8 @@ import datasets
 
 import gan
 
+import os
+
 from torchvision.utils import save_image
 from torchvision import transforms
 
@@ -72,7 +74,4 @@ for i in checkpoints:#range(6):
 # b = torch.from_numpy(np.zeros((opt.batch_size, 3, 48, 80))-1)
 # # b.zero_()
 # b[:,:2,:,:] = a
-
-# b = b / 2.0 + 0.5
-# save_image(b, 'sample_real.jpeg')
 

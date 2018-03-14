@@ -20,7 +20,7 @@ class GaussianMixtureDataset(Dataset):
 
     def __init__(self, mean_list, component_size_list):
         """
-	Generate points from multiple gaussians.
+    Generate points from multiple gaussians.
         Args:
             mean_list: list of mean vectors.
             component_size: number of points in one component.
@@ -180,21 +180,23 @@ class MyDataLoader():
 class LINDataset(Dataset):
     """Points from multiple gaussians"""
 
-    def __init__(self, proteins=['Arp3'], basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/', transform=None):
+    def __init__(self, proteins=['Arp3'], basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/', transform=None, conditional=False):
         self.images = []
+        self.conditional = conditional
+        self.prt2id = dict(zip(proteins, range(len(proteins))))
+
+        self.images = []
+        self.labels = []
 
         for protein in proteins:
             self.path = basedir + protein + '/'
-            self.filenames = list(filter(lambda x: (x.endswith('.jpg') or x.endswith('.jpeg') or x.endswith('.png')), os.listdir(self.path)))
+            filenames = list(filter(lambda x: (x.endswith('.jpg') or x.endswith('.jpeg') or x.endswith('.png')), os.listdir(self.path)))
             self.transform = transform
 
-            self.images = []
-
-            for filename in self.filenames:
+            for filename in filenames:
                 img = imread(self.path + filename)
-                # img = resize(img, (24, 40))
                 img = img_as_float(img)
-                img = np.rollaxis(img[:,:,:2], 2, 0) #.reshape((2, 24, 40))
+                img = np.rollaxis(img[:,:,:2], 2, 0)
                 img = np.asarray(img, dtype=np.float32)
                 img = torch.from_numpy(img)
 
@@ -202,22 +204,18 @@ class LINDataset(Dataset):
                     img = self.transform(img)
 
                 self.images.append(img)
+                self.labels.append(self.prt2id[protein])
 
         
     def __len__(self):
-        return len(self.filenames)
+        return len(self.images)
 
     def __getitem__(self, idx):
-        # img = imread(self.path + self.filenames[idx])
-        # img = resize(img, (24, 40))
-        # img = img_as_float(img)
-        # img = img[:,:,:2].reshape((2, 24, 40))
-        # img = torch.from_numpy(img)
 
-        # if self.transform:
-        #     img = self.transform(img)
-
-        return self.images[idx]
+        if self.conditional:
+            return self.images[idx], self.labels[idx]
+        else:
+            return self.images[idx]
 
 class CIFAR(Dataset):
     """Points from multiple gaussians"""

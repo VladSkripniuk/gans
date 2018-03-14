@@ -32,6 +32,10 @@ opt.path = 'SNGAN_CIFAR/'
 opt.num_iter = 100000
 opt.batch_size = 64
 
+<<<<<<< HEAD
+=======
+opt.visualize_nth = 2000
+>>>>>>> 9e95b5e74e0fd776cdc9e507081d5cb6580a5034
 opt.conditional = False
 opt.wgangp_lambda = 10.0
 opt.n_classes = 10
