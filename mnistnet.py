@@ -136,7 +136,7 @@ class mnistnet_DSN(nn.Module):
         out = self.layer4(out)
         return out.view(-1)
 
-<<<<<<< HEAD
+
 # improved wgan pytorch
 
 DIM = 64
