@@ -23,10 +23,14 @@ class Options:
         self.wgangp_lambda = 0.1
         self.visualize_nth = 10
         self.n_classes = 4
+        self.n_classes1 = 41
+        self.n_classes2 = 35
         self.conditional = False
         self.shuffle_labels = False
         self.checkpoints = []
         self.path = ''
+        self.two_labels = False
+        self.test_labels = False
         
 
 TENSORBOARD = True
@@ -68,10 +72,7 @@ class GAN_base():
         data_a = next(iterator_a)
         data_b = next(iterator_b)
 
-        if self.opt.conditional:
-            errD = self.compute_disc_score((data_a[0].detach(), data_a[1]), (data_b[0].detach(), data_b[1]))
-        else:
-            errD = self.compute_disc_score(data_a.detach(), data_b.detach())
+        errD = self.compute_disc_score(data_a, data_b)
         
         errD = errD.mean()
         errD.backward()
@@ -194,12 +195,15 @@ class GAN_base():
             return torch.cat((x, torch.autograd.Variable(y_onehot.expand(x.size()[0], self.opt.n_classes, x.size()[2], x.size()[3]))), 1)
 
 
-    def gen_labels(self, batch_size):
+    def gen_labels(self, batch_size, n_classes=None):
+        if n_classes is None:
+            n_classes = self.opt.n_classes
+
         th = torch.cuda if self.opt.cuda else torch
         if self.opt.cuda:
-            return torch.autograd.Variable(torch.LongTensor(batch_size).random_(0, self.opt.n_classes).cuda())
+            return torch.autograd.Variable(torch.LongTensor(batch_size).random_(0, n_classes).cuda())
         else:
-            return torch.autograd.Variable(torch.LongTensor(batch_size).random_(0, self.opt.n_classes))
+            return torch.autograd.Variable(torch.LongTensor(batch_size).random_(0, n_classes))
 
 
     def gen_latent_noise(self, batch_size, nz):
@@ -214,6 +218,12 @@ class GAN_base():
     def gen_fake_data(self, batch_size, nz, noise=None, label=None, drop_labels=False):
         if noise is None:
             noise = Variable(self.gen_latent_noise(batch_size, nz))
+
+        if self.opt.two_labels:
+            y1 = self.gen_labels(batch_size, self.opt.n_classes1)
+            y2 = self.gen_labels(batch_size, self.opt.n_classes2)
+            return self.netG(noise, y1, y2), y1, y2
+
 
         if self.opt.conditional:
             if label is None:
@@ -272,18 +282,47 @@ class GAN(GAN_base):
     def compute_disc_score(self, data_a, data_b):
         th = torch.cuda if self.opt.cuda else torch
 
-        if self.opt.conditional:
+
+        if type(data_a) == list or type(data_a) == tuple:
+            data_a = (data_a[0].detach(),) + tuple(a for a in data_a[1:])
+            data_b = (data_b[0].detach(),) + tuple(b for b in data_b[1:])
+            # data_b = [data_b[0].detach(), data_b[1], data_b[2]]
+
+        # if type(data_a) == list:
+        #     data_a = [data_a[0].detach(), data_a[1], data_a[2]]
+        #     data_b = [data_b[0].detach(), data_b[1], data_b[2]]
+
+        # elif type(data_a) == tuple:
+        #     data_a = data_a[0].detach(), data_a[1]
+        #     data_b = data_b[0].detach(), data_b[1]
+        else:
+            data_a = data_a.detach()
+            data_b = data_b.detach()
+
+        if self.opt.conditionalD:
             data_a = self.join_xy(data_a)
             data_b = self.join_xy(data_b)
 
-        scores_a = self.netD(data_a)
-        scores_b = self.netD(data_b)
+        if type(data_a) == list or type(data_a) == tuple:
+            scores_a = self.netD(*data_a)
+            scores_b = self.netD(*data_b)
+        else:
+            scores_a = self.netD(data_a)
+            scores_b = self.netD(data_b)
 
-        labels_a = Variable(th.FloatTensor(scores_a.size(0)).fill_(self.real_label))
-        errD_a = self.criterion(scores_a, labels_a)
+        if type(scores_a) is tuple:
+            labels_a = Variable(th.FloatTensor(scores_a[0].size(0)).fill_(self.real_label))
+            errD_a = self.criterion(scores_a[0], labels_a) + self.criterion(scores_a[1], labels_a)
+        else:
+            labels_a = Variable(th.FloatTensor(scores_a.size(0)).fill_(self.real_label))
+            errD_a = self.criterion(scores_a, labels_a)
 
-        labels_b = Variable(th.FloatTensor(scores_b.size(0)).fill_(self.fake_label))
-        errD_b = self.criterion(scores_b, labels_b)
+        if type(scores_b) is tuple:
+            labels_b = Variable(th.FloatTensor(scores_b[0].size(0)).fill_(self.fake_label))
+            errD_b = self.criterion(scores_b[0], labels_b) + self.criterion(scores_b[1], labels_b)
+        else:
+            labels_b = Variable(th.FloatTensor(scores_b.size(0)).fill_(self.fake_label))
+            errD_b = self.criterion(scores_b, labels_b)
         
         errD = errD_a + errD_b
         return errD
@@ -292,10 +331,19 @@ class GAN(GAN_base):
     def compute_gen_score(self, data):
         th = torch.cuda if self.opt.cuda else torch
 
-        if self.opt.conditional:
+        if self.opt.conditionalD:
             data = self.join_xy(data)
 
-        scores = self.netD(data)
-        labels = Variable(th.FloatTensor(scores.size()).fill_(self.generator_label))
-        errG = self.criterion(scores, labels)
+        if type(data) == list or type(data) == tuple:
+            scores = self.netD(*data)
+        else:
+            scores = self.netD(data)
+
+        if type(scores) is tuple:
+            labels = Variable(th.FloatTensor(scores[0].size()).fill_(self.generator_label))
+            errG = self.criterion(scores[0], labels) + self.criterion(scores[1], labels)
+        else:
+            labels = Variable(th.FloatTensor(scores.size()).fill_(self.generator_label))
+            errG = self.criterion(scores, labels)
+
         return errG

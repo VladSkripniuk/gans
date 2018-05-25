@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from torch.autograd import Variable
+
 from layers.SNConv2d import SNConv2d
+from layers.SNLinear import SNLinear
 
 
 def weights_init(m):
@@ -331,6 +335,42 @@ class LINnet_D(nn.Module):
         out = self.layer5(out)
         return out.view(-1)
 
+
+class LINnet_DSN(nn.Module):
+    def __init__(self,nc=1,ndf=64,spec_norm=True,bias=False): # 128 ok
+        super(LINnet_DSN,self).__init__()
+        # 48 x 80
+        self.layer1 = nn.Sequential(SNConv2d(nc,ndf,kernel_size=4,stride=2,padding=1,bias=bias,spec_norm=spec_norm),
+                                 nn.BatchNorm2d(ndf),
+                                 nn.LeakyReLU(0.2,inplace=True))
+        # 24 x 40
+        self.layer2 = nn.Sequential(SNConv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1,bias=bias,spec_norm=spec_norm),
+                                 nn.BatchNorm2d(ndf*2),
+                                 nn.LeakyReLU(0.2,inplace=True))
+        # 12 x 20
+        self.layer3 = nn.Sequential(SNConv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1,bias=bias,spec_norm=spec_norm),
+                                 nn.BatchNorm2d(ndf*4),
+                                 nn.LeakyReLU(0.2,inplace=True))
+        # 6 x 10
+        self.layer4 = nn.Sequential(SNConv2d(ndf*4,ndf*8,kernel_size=4,stride=2,padding=1,bias=bias,spec_norm=spec_norm),
+                                 nn.BatchNorm2d(ndf*8),
+                                 nn.LeakyReLU(0.2,inplace=True))
+        # 3 x 5
+        self.layer5 = nn.Sequential(SNConv2d(ndf*8,1,kernel_size=(3, 5),stride=1,padding=0,bias=bias,spec_norm=spec_norm))#,
+                                 # nn.Sigmoid())
+    
+        self.apply(weights_init)
+
+    def forward(self,x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        out = self.layer5(out)
+        return out.view(-1)
+
+
+
 class netG(nn.Module):
     def __init__(self, nc=1, ngf=64, nz=100): # 256 ok
         super(netG,self).__init__()
@@ -367,8 +407,9 @@ class netG(nn.Module):
         return out
 
 class netD(nn.Module):
-    def __init__(self,nc=1,ndf=64,spec_norm=True,detach=False): # 128 ok
+    def __init__(self,nc=1,ndf=64,spec_norm=True,detach=False,n_classes=10): # 128 ok
         super(netD,self).__init__()
+        self.n_classes = n_classes
         # 32 x 32
         self.layer0_0 = nn.Sequential(SNConv2d(nc,ndf,kernel_size=3,stride=1,padding=1,spec_norm=spec_norm,detach=detach),
                                  nn.LeakyReLU(0.1,inplace=True))
@@ -416,11 +457,16 @@ class netD(nn.Module):
 
         # self.layer3_1 = nn.Sequential(nn.Conv2d(ndf*8,1,kernel_size=4,stride=1,padding=0),
         #                             )
+
+        self.embedding = SNLinear(n_classes, ndf*8)
+        self.linear = SNLinear(ndf*8, 1)
+
         
         self.apply(weights_init)
             
 
-    def forward(self,x):
+    def forward(self,input):
+        x, y = input
         out = x
         out = self.layer0_0(out)
         out = self.layer0_1(out)
@@ -428,7 +474,26 @@ class netD(nn.Module):
         out = self.layer1_1(out)
         out = self.layer2_0(out)
         out = self.layer2_1(out)
-        out = self.layer3_0(out)
-        out = self.layer3_1(out)
+        h = self.layer3_0(out)
+        # h = self.layer3_1(out)
+
+        h = torch.sum(h, dim=2).sum(dim=2)  # Global pooling
+        output = self.linear(h)
+
+        th = torch.cuda if h.is_cuda else torch
+
+        y_onehot = th.FloatTensor(y.size()[0], self.n_classes)
+        y_onehot.zero_()
+        y_onehot.scatter_(1, y.data.view(-1,1), 1)
+
+        y_onehot = Variable(y_onehot)
+
+        w_y = self.embedding(y_onehot.float())
+
+        output += torch.sum(w_y * h, dim=1).view(-1, 1)
+
+        # out = self.layer4(out)
+        return output.view(-1)
+
         return out.view(-1)
 

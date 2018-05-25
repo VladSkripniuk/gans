@@ -39,33 +39,33 @@ class mnistnet_D(nn.Module):
 
         self.n_classes=n_classes
 
-        self.layer1 = nn.Sequential(SNConv2d(nc,ndf,kernel_size=4,stride=2,padding=1, bias=bias),
+        self.layer1 = nn.Sequential(nn.Conv2d(nc,ndf,kernel_size=4,stride=2,padding=1, bias=bias),
                                nn.BatchNorm2d(ndf),
                                nn.LeakyReLU(0.2,inplace=True))
         # 16 x 16
-        self.layer2 = nn.Sequential(SNConv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1, bias=bias),
+        self.layer2 = nn.Sequential(nn.Conv2d(ndf,ndf*2,kernel_size=4,stride=2,padding=1, bias=bias),
                                nn.BatchNorm2d(ndf*2),
                                nn.LeakyReLU(0.2,inplace=True))
         # 8 x 8
-        self.layer3 = nn.Sequential(SNConv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1, bias=bias),
+        self.layer3 = nn.Sequential(nn.Conv2d(ndf*2,ndf*4,kernel_size=4,stride=2,padding=1, bias=bias),
                                nn.BatchNorm2d(ndf*4),
                                nn.LeakyReLU(0.2,inplace=True))
         # 4 x 4
-        self.layer4 = nn.Sequential(SNConv2d(ndf*4,1,kernel_size=4,stride=1,padding=0, bias=bias))#,
+        self.layer4 = nn.Sequential(nn.Conv2d(ndf*4,1,kernel_size=4,stride=1,padding=0, bias=bias))#,
                                # nn.Sigmoid())
 
-        self.embedding = SNLinear(n_classes, ndf*4)
-        self.linear = SNLinear(ndf*4, 1)
+        self.embedding = nn.Linear(n_classes, ndf*4, bias=False)
+        # self.linear = SNLinear(ndf*4, 1)
 
-    def forward(self,input):
-        x, y = input
+    def forward(self,x, y):
+        # x, y = input
         
         h = self.layer1(x)
         h = self.layer2(h)
         h = self.layer3(h)
 
         h = torch.sum(h, dim=2).sum(dim=2)  # Global pooling
-        output = self.linear(h)
+        # output = self.linear(h)
 
         th = torch.cuda if h.is_cuda else torch
 
@@ -77,7 +77,7 @@ class mnistnet_D(nn.Module):
 
         w_y = self.embedding(y_onehot.float())
 
-        output += torch.sum(w_y * h, dim=1).view(-1, 1)
+        output = torch.sum(w_y * h, dim=1).view(-1, 1)
 
         # out = self.layer4(out)
         return output.view(-1)
@@ -187,6 +187,10 @@ def callback(gan, i_iter):
 
     # if i_iter % 5000 == 0:
     #     save_inception_score(gan, i_iter)
+
+    if i_iter % 50 == 0:
+        torch.save(netD.embedding.state_dict(), opt.path + 'emb{}.pth'.format(i_iter))
+        # torch.save(netD.embedding2.state_dict(), opt.path + '2emb{}.pth'.format(i_iter))
 
     if i_iter % 50 == 0:
         save_samples(gan, i_iter)

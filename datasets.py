@@ -15,6 +15,8 @@ from skimage.io import imread
 from skimage import img_as_float
 from skimage.transform import resize
 
+import pandas as pd
+
 class GaussianMixtureDataset(Dataset):
     """Points from multiple gaussians"""
 
@@ -141,9 +143,17 @@ class MyDataLoader():
             for batch in dataloader:
                 if not conditional:
                     if is_cuda:
-                        batch = batch.cuda()
+                        if type(batch) == list:
+                            batch = [x.cuda() for x in batch]
+                        else:
+                            batch = batch.cuda()
                     
-                    batch = Variable(batch).float()
+
+                    if type(batch) == list:
+                        batch = [Variable(x) for x in batch]
+                        batch[0] = batch[0].float()
+                    else:
+                        batch = Variable(batch).float()
 
                 if conditional:
                     if pictures:
@@ -180,7 +190,15 @@ class MyDataLoader():
 class LINDataset(Dataset):
     """Points from multiple gaussians"""
 
-    def __init__(self, proteins=['Arp3'], basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/', transform=None, conditional=False):
+    def __init__(self, proteins=['Arp3'], basedir='/home/ubuntu/LIN/LIN_Normalized_WT_size-48-80_train/', transform=None, conditional=False, highres=False):
+
+        if highres:
+            basedir='/home/ubuntu/LIN128/LIN_Normalized_WT_size-96-160_train/'
+
+        if proteins == 'all':
+            proteins = os.listdir(basedir)
+
+        self.proteins = proteins
         self.images = []
         self.conditional = conditional
         self.prt2id = dict(zip(proteins, range(len(proteins))))
@@ -213,14 +231,17 @@ class LINDataset(Dataset):
     def __getitem__(self, idx):
 
         if self.conditional:
-            return self.images[idx], self.labels[idx]
+            # print(2*self.labels[idx] + (self.labels[idx] % 2), self.labels[idx])
+            return self.images[idx], self.labels[idx]#2*self.labels[idx] + (idx % 2) #self.labels[idx]
         else:
-            return self.images[idx]
+            return self.images[idx]#, 0, 0
 
 class CIFAR(Dataset):
     """Points from multiple gaussians"""
 
-    def __init__(self, selected=None, train=True):
+    def __init__(self, selected=None, train=True, labeled=False):
+        self.labeled = labeled
+
         self.data = dset.CIFAR10(root = './cifar/',
                          transform=transforms.Compose([
                                # transforms.Scale(32),
@@ -243,4 +264,117 @@ class CIFAR(Dataset):
         return len(self.index)
 
     def __getitem__(self, idx):
-        return self.data[self.index[idx]][0]
+        if self.labeled:
+            return self.data[self.index[idx]]
+        else:
+            return self.data[self.index[idx]][0]
+
+class LINwithdeletions(Dataset):
+    """Points from multiple gaussians"""
+
+    def __init__(self, basedir='/home/ubuntu/LIN_deletions/LIN_Normalized_all_size-128-512_train/', transform=None, raw=False, wo_deletions=[]):
+
+        df = pd.read_csv('GO_terms.csv')
+        df = df.fillna(0)
+
+        names = df['Unnamed: 0']
+
+        df = df.drop(['Unnamed: 0'], axis=1)
+
+        # print(df.as_matrix())
+        go = np.asarray(df.as_matrix(),dtype=int)
+        # print(go.shape)
+        # print(len(df.columns))
+
+        go_dict = dict()
+
+        for i, name in enumerate(df.columns):
+            go_dict[name] = go[:,i]
+
+        self.go_dict = go_dict
+
+        # products = np.sum(go[:,np.newaxis,:] * go[:,:,np.newaxis], axis=0)
+
+        if not raw:
+            basedir='/home/ubuntu/LIN_deletions_cropped/'
+
+        pairs = os.listdir(basedir)
+        pairs = sorted(pairs)
+
+        proteins = []
+        deletions = []
+
+        for pair in pairs:
+            proteins.append(pair[2:].split('_D_')[0])
+            if pair[2:].split('_D_')[1] not in wo_deletions:
+                deletions.append(pair[2:].split('_D_')[1])
+
+        proteins = sorted(set(proteins))
+        deletions = sorted(set(deletions))
+
+        self.pairs = pairs
+        self.images = []
+        self.prt2id = dict(zip(proteins, range(len(proteins))))
+        self.id2prt = dict(zip(range(len(proteins)), proteins))
+        self.del2id = dict(zip(deletions, range(len(deletions))))
+        # print(self.prt2id)
+        # print(self.del2id)
+        self.images = []
+        self.gens = []
+        self.deletions = []
+
+        from time import time
+
+        from tqdm import tqdm
+
+        for pair in tqdm(pairs):
+            self.path = basedir + pair + '/'
+            filenames = list(filter(lambda x: (x.endswith('.jpg') or x.endswith('.jpeg') or x.endswith('.png')), os.listdir(self.path)))
+            self.transform = transform
+
+            gen = pair[2:].split('_D_')[0]
+            deletion = pair[2:].split('_D_')[1]
+
+            if deletion in wo_deletions:
+                continue
+
+            for filename in filenames:
+                # s = time()
+                img = imread(self.path + filename)
+                img = img_as_float(img)
+                # print(1, time()-s)
+                # s = time()
+
+                if raw:
+                    img = img[16:-16,128:-128,:]
+                    img = resize(img, (48, 128))
+
+                # print(2, time()-s)
+                # s = time()
+
+                img = np.rollaxis(img[:,:,:2], 2, 0)
+                img = np.asarray(img, dtype=np.float32)
+                img = torch.from_numpy(img)
+
+                # print(3, time()-s)
+                # s = time()
+
+
+                if self.transform:
+                    img = self.transform(img)
+
+                # print(4, time()-s)
+                # s = time()
+
+
+                self.images.append(img)
+                self.gens.append(self.prt2id[gen])
+                self.deletions.append(self.del2id[deletion])
+
+        
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+            return [self.images[idx], self.gens[idx], self.deletions[idx]]#, self.go_dict[self.id2prt[self.gens[idx]]]]
+            # return [self.images[idx], idx%44, (idx*idx)%44]

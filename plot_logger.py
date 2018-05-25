@@ -14,6 +14,7 @@ filename = 'SNGAN_GANc2st/SNGAN_GANc2st'
 filename = 'LIN_wgan500k6/LIN_wgan500k6'
 filename = 'SNGAN_net_wo_spec/SNGAN'
 filename = 'CIFAR/CIFAR'
+filename = 'deletions2small/deletions'
 
 log = Logger()
 log.load(filename)
@@ -25,7 +26,7 @@ for key, value in log.store.items():
 		if value['steps'][0] is None:
 			ax.plot(range(len(value['values'])), value['values'])
 		else:
-			ax.plot(value['steps'], value['values'])
+			ax.plot(value['steps'][:4000], value['values'][:4000])
 			# ax.set_ylim((0,10))
 	elif '0.1' in value['values'][0].keys():
 		v1 = []
